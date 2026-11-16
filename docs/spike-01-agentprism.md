@@ -26,28 +26,28 @@ If this works, an upstream `keep: true` mode becomes a convenience, not a blocke
 
 ## Step 1: install and first run (gate 1)
 
-- [ ] Node.js >= 22 is available in the workspace.
-- [ ] The harness is authenticated in the workspace (`codex login` or `claude /login`).
-- [ ] The MCP entry is registered in the steward (Claude Code / Codex / OpenCode):
+- [x] Node.js >= 22 is available in the workspace.
+- [x] The harness is authenticated in the workspace (`codex login` or `claude /login`).
+- [x] The MCP entry is registered in the steward (Claude Code / Codex / OpenCode):
       `{"command": "npx", "args": ["-y", "@automatalabs/workflows", "mcp"]}`
-- [ ] Explore with `{"action": "config"}`: what models/modes are reported?
+- [x] Explore with `{"action": "config"}`: what models/modes are reported?
 - [ ] Run a read-only one-line workflow (`agent('Summarize the repo')`); record time to first result.
 
 ## Step 2: persistent worktree via `cwd` (core assumption)
 
-- [ ] Create a worktree as above, run a small edit task with `cwd`, and inspect the diff.
-- [ ] Check whether the agent writes **only** inside that worktree (`git status` in the main checkout stays clean).
+- [x] Create a worktree as above, run a small edit task with `cwd`, and inspect the diff.
+- [x] Check whether the agent writes **only** inside that worktree (`git status` in the main checkout stays clean).
 - [ ] Check whether permission requests come back as live waits (`permissions-response`), not auto-approved.
 
 ## Step 3: disconnect and cancel (gate 4)
 
-- [ ] Start a longer task, close the steward session, reopen it, and query the `runId` with `status`.
-- [ ] Cancel a run with `stop`; confirm no leftover harness/ACP processes (`ps`).
+- [x] Start a longer task, close the steward session, reopen it, and query the `runId` with `status`.
+- [x] Cancel a run with `stop`; confirm no leftover harness/ACP processes (`ps`).
 
 ## Step 4: 20 serial tasks (gate 3)
 
-- [ ] Run 20 small tasks, each with its own worktree.
-- [ ] Record per task: duration, RSS of the pooled harness process, process count, and leakage from the previous task.
+- [x] Run 20 small tasks, each with its own worktree.
+- [x] Record per task: duration, RSS of the pooled harness process, process count, and leakage from the previous task.
 - [ ] Compare harness startup time with dependency-install time per worktree. Which one dominates?
 
 ## Step 5: other harnesses (gate 2)
@@ -64,4 +64,11 @@ If this works, an upstream `keep: true` mode becomes a convenience, not a blocke
 
 ## Notes
 
-<!-- Write measurements and observations here. -->
+- **Worktrees:** persistent worktree via `cwd` works; main checkout stays clean.
+- **Warm pool:** process reuse works (same 4 PIDs); 0 processes after `dispose`.
+- **20 serial tasks:** 20/20 correct diffs, 0 leakage, mean 16.35 s per task.
+- **Memory:** RSS grew 367 -> 892 MiB (~26 MiB/task, no plateau). Plan: recycle the runner every N tasks.
+- **MCP:** client SIGKILL, then a new client reconnected by `runId` and fetched the result. `stop` aborts the run, but the warm pool stays alive until daemon stop.
+- **Sandbox (open):** Codex bwrap sandbox fails (mount propagation denied, AppArmor suspected). Runs used `agent-full-access`, so isolation is not proven.
+- **Not exercised:** permission requests as live waits (full-access mode); Step 5 other harnesses.
+- **Decision:** ADOPT.
